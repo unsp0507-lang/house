@@ -97,6 +97,12 @@ body{font-family:'Nanum Gothic',sans-serif;background:var(--bg);color:var(--text
 .abtns{display:flex;gap:6px;margin-top:10px}
 .abtn{flex:1;padding:9px;border-radius:10px;border:1.5px solid var(--border2);background:#fff;color:var(--text);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
 .abtn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-s)}
+
+.memo-edit-wrap{margin-top:8px}
+.memo-edit-wrap textarea{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border2);background:#fff;color:var(--text);font-family:inherit;font-size:13px;resize:none;height:72px;outline:none;transition:border-color .2s;margin-bottom:6px}
+.memo-edit-wrap textarea:focus{border-color:var(--blue)}
+.memo-save-btn{width:100%;padding:9px;border-radius:10px;border:none;background:var(--blue);color:#fff;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+
 .abtn.danger:hover{border-color:var(--red);color:var(--red);background:var(--red-s)}
 
 /* 경비 */
@@ -595,10 +601,40 @@ function tCard(t) {
       '<div class="abtns">' +
         '<button class="abtn" onclick="callT(\''+t.phone+'\')">&#128222; 전화</button>' +
         '<button class="abtn" onclick="cycleStatus('+t.id+')">상태변경</button>' +
+        '<button class="abtn" onclick="toggleMemoEdit('+t.id+')">&#128172; 메모</button>' +
         '<button class="abtn danger" onclick="delTenant('+t.id+')">삭제</button>' +
+      '</div>' +
+      '<div class="memo-edit-wrap" id="memo-edit-'+t.id+'" style="display:none">' +
+        '<textarea id="memo-ta-'+t.id+'" placeholder="메모를 입력하세요"></textarea>' +
+        '<button class="memo-save-btn" onclick="saveMemoInline('+t.id+')">저장</button>' +
       '</div>' +
     '</div>' +
   '</div>';
+}
+
+
+function toggleMemoEdit(id) {
+  var wrap = document.getElementById('memo-edit-'+id);
+  var t = tenants.find(function(x){ return x.id === id; });
+  if (wrap.style.display === 'none') {
+    document.getElementById('memo-ta-'+id).value = t.memo || '';
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function saveMemoInline(id) {
+  var t = tenants.find(function(x){ return x.id === id; });
+  t.memo = document.getElementById('memo-ta-'+id).value.trim();
+  save();
+  document.getElementById('memo-edit-'+id).style.display = 'none';
+  renderTenants();
+  // 저장 후 카드 다시 열기
+  setTimeout(function(){ 
+    var detail = document.getElementById('td-'+id);
+    if(detail) detail.classList.add('open');
+  }, 50);
 }
 
 function toggleCard(id) { document.getElementById('td-'+id).classList.toggle('open'); }
