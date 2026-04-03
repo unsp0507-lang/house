@@ -410,7 +410,7 @@ function closeOv(id) { document.getElementById(id).classList.remove('on'); }
 // 단지
 function renderCsel() {
   var s = document.getElementById('csel');
-  var html = '<option value="전체">전체 단지</option>';
+  var html = '<option value="전체">전체 보기</option>';
   D.cx.forEach(function(c){ html += '<option value="'+c+'">'+ c +'</option>'; });
   s.innerHTML = html;
   s.value = curC;
