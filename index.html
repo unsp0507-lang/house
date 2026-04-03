@@ -195,6 +195,22 @@ body{font-family:'Nanum Gothic',sans-serif;background:var(--bg);color:var(--text
 .empty div{font-size:36px;margin-bottom:10px}
 .empty p{font-size:13px;line-height:1.8}
 </style>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDQNJy9W2GnbPetMEDJU8hGk25sOLGHOEc",
+    authDomain: "house-7d6a7.firebaseapp.com",
+    databaseURL: "https://house-7d6a7-default-rtdb.firebaseio.com",
+    projectId: "house-7d6a7",
+    storageBucket: "house-7d6a7.firebasestorage.app",
+    messagingSenderId: "479928452331",
+    appId: "1:479928452331:web:6cdcacc59fb3a585da2aae"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.database();
+</script>
 </head>
 <body>
 
@@ -381,15 +397,30 @@ body{font-family:'Nanum Gothic',sans-serif;background:var(--bg);color:var(--text
 
 <script>
 // ── 데이터 ──
-var VER = 'v5';
-if (localStorage.getItem('ver') !== VER) { localStorage.clear(); localStorage.setItem('ver', VER); }
+var complexes = null;
+var tenants   = [];
+var expenses  = [];
+var memos     = [];
 
-var complexes = JSON.parse(localStorage.getItem('cx') || 'null');
-var tenants   = JSON.parse(localStorage.getItem('tn') || '[]');
-var expenses  = JSON.parse(localStorage.getItem('ex') || '[]');
-var memos     = JSON.parse(localStorage.getItem('mm') || '[]');
+// Firebase에서 데이터 로드
+db.ref('data').once('value').then(function(snap) {
+  var d = snap.val();
+  if (d && d.complexes) {
+    complexes = d.complexes;
+    tenants   = d.tenants   || [];
+    expenses  = d.expenses  || [];
+    memos     = d.memos     || [];
+    curComplex = complexes[0] || '';
+    renderTenants();
+  } else {
+    initSampleData();
+  }
+}).catch(function() {
+  initSampleData();
+});
 
-if (!complexes) {
+function initSampleData() {
+  if (!complexes) {
   complexes = ['관악구', '라희엽빌리지'];
   var m  = new Date().toISOString().slice(0,7);
   var pm = new Date(new Date().setMonth(new Date().getMonth()-1)).toISOString().slice(0,7);
@@ -416,14 +447,17 @@ if (!complexes) {
     {id:2,type:'notice',content:'라희엽빌리지 B동 엘리베이터 점검 6/15 오전 10시~12시',date:'2025.06.03'},
     {id:3,type:'memo',content:'라희엽빌리지 603호 보증금 잔금 확인 후 연락',date:'2025.06.04'}
   ];
-  save();
+    save();
+  }
 }
 
 function save() {
-  localStorage.setItem('cx', JSON.stringify(complexes));
-  localStorage.setItem('tn', JSON.stringify(tenants));
-  localStorage.setItem('ex', JSON.stringify(expenses));
-  localStorage.setItem('mm', JSON.stringify(memos));
+  db.ref('data').set({
+    complexes: complexes,
+    tenants:   tenants,
+    expenses:  expenses,
+    memos:     memos
+  });
 }
 
 // ── 상태 ──
@@ -855,8 +889,7 @@ document.getElementById('new-cname').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') confirmAddC();
 });
 
-// 초기 렌더
-renderTenants();
+// 초기 렌더는 Firebase 로드 완료 후 실행
 </script>
 </body>
 </html>
