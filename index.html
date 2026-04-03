@@ -420,35 +420,13 @@ db.ref('data').once('value').then(function(snap) {
 });
 
 function initSampleData() {
-  if (!complexes) {
-  complexes = ['관악구', '라희엽빌리지'];
-  var m  = new Date().toISOString().slice(0,7);
-  var pm = new Date(new Date().setMonth(new Date().getMonth()-1)).toISOString().slice(0,7);
-  tenants = [
-    {id:1,complex:'관악구',room:'101동 302호',name:'김민준',phone:'010-1234-5678',period:'2023.06.01 ~ 2025.06.30',rent:'보증금 1000 / 월세 45',status:'exit',memo:'6월 말 퇴실 예정'},
-    {id:2,complex:'관악구',room:'101동 505호',name:'이서연',phone:'010-9876-5432',period:'2024.01.10 ~ 2026.01.10',rent:'보증금 500 / 월세 55',status:'stay',memo:''},
-    {id:3,complex:'관악구',room:'102동 201호',name:'박지훈',phone:'010-5555-1234',period:'2023.12.01 ~ 2025.12.01',rent:'보증금 2000 / 월세 40',status:'stay',memo:'반려동물 1마리'},
-    {id:4,complex:'라희엽빌리지',room:'A동 801호',name:'최수아',phone:'010-3333-7777',period:'2024.03.01 ~ 2026.03.01',rent:'보증금 1500 / 월세 60',status:'stay',memo:''},
-    {id:5,complex:'라희엽빌리지',room:'B동 402호',name:'정태양',phone:'010-2222-8888',period:'2023.09.01 ~ 2025.09.01',rent:'보증금 1000 / 월세 50',status:'exit',memo:'청소비 정산 필요'},
-    {id:6,complex:'라희엽빌리지',room:'B동 603호',name:'한예림',phone:'010-4444-9999',period:'2024.06.01 ~ 2026.06.01',rent:'보증금 2000 / 월세 65',status:'pending',memo:'보증금 일부 미납 확인'}
-  ];
-  expenses = [
-    {id:1,type:'income',complex:'관악구',name:'302호 월세',amount:45,date:m+'-05'},
-    {id:2,type:'income',complex:'관악구',name:'505호 월세',amount:55,date:m+'-05'},
-    {id:3,type:'expense',complex:'관악구',name:'복도 조명 교체',amount:8,date:m+'-10'},
-    {id:4,type:'income',complex:'라희엽빌리지',name:'801호 월세',amount:60,date:m+'-05'},
-    {id:5,type:'income',complex:'라희엽빌리지',name:'402호 월세',amount:50,date:m+'-05'},
-    {id:6,type:'expense',complex:'라희엽빌리지',name:'보일러 수리',amount:25,date:m+'-12'},
-    {id:7,type:'income',complex:'관악구',name:'201호 월세',amount:40,date:pm+'-05'},
-    {id:8,type:'expense',complex:'공통',name:'세금계산서 발행',amount:5,date:pm+'-15'}
-  ];
-  memos = [
-    {id:1,type:'alert',content:'관악구 302호 퇴실 예정 (6월 말) - 청소 업체 예약 필요',date:'2025.06.01'},
-    {id:2,type:'notice',content:'라희엽빌리지 B동 엘리베이터 점검 6/15 오전 10시~12시',date:'2025.06.03'},
-    {id:3,type:'memo',content:'라희엽빌리지 603호 보증금 잔금 확인 후 연락',date:'2025.06.04'}
-  ];
-    save();
-  }
+  // Firebase에 데이터 없으면 빈 상태로 시작
+  complexes = [];
+  tenants   = [];
+  expenses  = [];
+  memos     = [];
+  curComplex = '전체';
+  renderTenants();
 }
 
 function save() {
