@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>세입자 관리</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface2: #f0f3f9;
+    --border: #e2e8f4;
+    --border2: #d0d9ee;
+    --accent: #3b6ef6;
+    --accent2: #12b981;
+    --accent3: #ef4444;
+    --accent4: #f59e0b;
+    --accent-soft: #eef2ff;
+    --accent2-soft: #ecfdf5;
+    --accent3-soft: #fef2f2;
+    --accent4-soft: #fffbeb;
+    --text: #1e2a3a;
+    --muted: #64748b;
+    --muted2: #94a3b8;
+    --shadow: 0 1px 4px rgba(60,80,140,0.07), 0 4px 16px rgba(60,80,140,0.05);
+    --shadow-sm: 0 1px 3px rgba(60,80,140,0.08);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family: 'Nanum Gothic', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+    font-size: 14px;
+  }
+
+  /* 탭바 */
+  .tabbar {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex; z-index: 999;
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -2px 12px rgba(60,80,140,0.07);
+  }
+  .tab-btn {
+    flex: 1; padding: 12px 0 10px;
+    background: none; border: none; color: var(--muted2);
+    font-family: inherit; font-size: 10px; font-weight: 700;
+    cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; gap: 4px; transition: color 0.2s;
+  }
+  .tab-btn.active { color: var(--accent); }
+  .tab-btn svg { width: 22px; height: 22px; }
+
+  .page { display: none; padding: 0 0 80px; }
+  .page.active { display: block; }
+
+  /* 헤더 */
+  .page-header {
+    padding: 20px 16px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: var(--shadow-sm);
+  }
+  .page-header h1 { font-size: 18px; font-weight: 800; color: var(--text); }
+  .page-header p  { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* 단지 탭 */
+  .complex-tabs-wrap {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 59px; z-index: 99;
+    display: flex; align-items: center;
+  }
+  .complex-tabs {
+    display: flex; gap: 7px; padding: 10px 12px;
+    overflow-x: auto; flex: 1; scrollbar-width: none;
+  }
+  .complex-tabs::-webkit-scrollbar { display: none; }
+  .complex-tab {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid var(--border2);
+    background: var(--surface2); color: var(--muted);
+    font-family: inherit; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+    box-shadow: var(--shadow-sm);
+  }
+  .complex-tab.active {
+    background: var(--accent); border-color: var(--accent);
+    color: #fff; box-shadow: 0 2px 8px rgba(59,110,246,0.25);
+  }
+  .complex-tab .del-x {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: rgba(255,255,255,0.25); color: #fff;
+    display: none; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 900; cursor: pointer; flex-shrink: 0;
+  }
+  .complex-tab.active .del-x { display: flex; }
+
+  .add-complex-btn {
+    padding: 8px 12px; background: none; border: none;
+    color: var(--accent); font-size: 22px; cursor: pointer; flex-shrink: 0;
+  }
+
+  /* 단지 추가 인라인 */
+  .add-complex-inline {
+    display: none; padding: 10px 12px;
+    background: var(--accent-soft); border-bottom: 1px solid var(--border);
+    gap: 8px; align-items: center;
+  }
+  .add-complex-inline.open { display: flex; }
+  .add-complex-inline input {
+    flex: 1; padding: 9px 12px; border-radius: 10px;
+    border: 1.5px solid var(--border2); background: var(--surface);
+    color: var(--text); font-family: inherit; font-size: 14px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .add-complex-inline input:focus { border-color: var(--accent); }
+  .add-complex-inline button {
+    padding: 9px 14px; border-radius: 10px; border: none;
+    font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .btn-ok { background: var(--accent); color: #fff; }
+  .btn-cancel-sm { background: var(--surface); color: var(--muted); border: 1px solid var(--border2) !important; }
+
+  /* 삭제 확인 배너 */
+  .delete-confirm-bar {
+    display: none; background: var(--accent3-soft);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 12px; margin: 10px 16px;
+    padding: 12px 14px; align-items: center; gap: 10px;
+  }
+  .delete-confirm-bar.open { display: flex; }
+  .delete-confirm-bar p { flex: 1; font-size: 13px; color: var(--accent3); font-weight: 700; }
+  .delete-confirm-bar button {
+    padding: 7px 14px; border-radius: 8px; border: none;
+    font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+  }
+  .del-yes { background: var(--accent3); color: #fff; }
+  .del-no  { background: #fff; color: var(--muted); border: 1px solid var(--border2) !important; margin-right: 4px; }
+
+  .section-label {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    letter-spacing: 0.5px; padding: 16px 16px 8px; text-transform: uppercase;
+  }
+
+  /* 세입자 카드 */
+  .tenant-card {
+    margin: 0 16px 10px; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 16px;
+    overflow: hidden; box-shadow: var(--shadow); transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .tenant-card:hover { box-shadow: 0 4px 20px rgba(60,80,140,0.12); }
+  .tenant-card.exit    { border-color: rgba(239,68,68,0.35); }
+  .tenant-card.pending { border-color: rgba(245,158,11,0.35); }
+
+  .status-bar { height: 4px; width: 100%; }
+  .tenant-card.exit    .status-bar { background: linear-gradient(90deg, var(--accent3), #ff8a8a); }
+  .tenant-card.stay    .status-bar { background: linear-gradient(90deg, var(--accent2), #6ee7b7); }
+  .tenant-card.pending .status-bar { background: linear-gradient(90deg, var(--accent4), #fcd34d); }
+
+  .tenant-head {
+    padding: 13px 14px 10px;
+    display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  }
+  .tenant-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .tenant-card.exit    .tenant-icon { background: var(--accent3-soft); }
+  .tenant-card.stay    .tenant-icon { background: var(--accent2-soft); }
+  .tenant-card.pending .tenant-icon { background: var(--accent4-soft); }
+
+  .tenant-info { flex: 1; }
+  .tenant-room { font-size: 13px; font-weight: 800; color: var(--text); }
+  .tenant-name { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .tenant-badge { font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 10px; flex-shrink: 0; }
+  .badge-exit    { background: var(--accent3-soft); color: var(--accent3); }
+  .badge-stay    { background: var(--accent2-soft); color: var(--accent2); }
+  .badge-pending { background: var(--accent4-soft); color: var(--accent4); }
+
+  .tenant-detail {
+    display: none; padding: 0 14px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .tenant-detail.open { display: block; }
+  .detail-row {
+    display: flex; justify-content: space-between;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .detail-row:last-of-type { border-bottom: none; }
+  .detail-row .label { color: var(--muted); }
+  .detail-row .value { font-weight: 700; text-align: right; max-width: 60%; }
+  .memo-box {
+    margin-top: 8px; padding: 10px 12px; background: #fff;
+    border: 1px solid var(--border); border-radius: 10px;
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+  .action-btns { display: flex; gap: 6px; margin-top: 10px; }
+  .action-btn {
+    flex: 1; padding: 9px; border-radius: 10px;
+    border: 1.5px solid var(--border2); background: #fff;
+    color: var(--text); font-family: inherit; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .action-btn.danger:hover { border-color: var(--accent3); color: var(--accent3); background: var(--accent3-soft); }
+
+  /* 경비 */
+  .month-filter { display: flex; gap: 6px; padding: 12px 16px; overflow-x: auto; scrollbar-width: none; }
+  .month-filter::-webkit-scrollbar { display: none; }
+  .month-chip {
+    padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border2);
+    background: var(--surface); color: var(--muted); font-family: inherit;
+    font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    transition: all 0.2s; box-shadow: var(--shadow-sm);
+  }
+  .month-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(59,110,246,0.2); }
+
+  .expense-summary {
+    margin: 4px 16px 12px; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 16px; box-shadow: var(--shadow);
+  }
+  .expense-summary-row { display: flex; }
+  .exp-item { flex: 1; text-align: center; }
+  .exp-item + .exp-item { border-left: 1px solid var(--border); }
+  .exp-label { font-size: 10px; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+  .exp-val { font-size: 18px; font-weight: 800; }
+  .exp-val.income  { color: var(--accent2); }
+  .exp-val.expense { color: var(--accent3); }
+  .exp-val.balance { color: var(--accent); }
+
+  .expense-list { padding: 0 16px; }
+  .expense-item {
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 13px; padding: 13px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-sm);
+  }
+  .exp-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+  }
+  .exp-icon.income  { background: var(--accent2-soft); }
+  .exp-icon.expense { background: var(--accent3-soft); }
+  .exp-info { flex: 1; }
+  .exp-name { font-size: 13px; font-weight: 700; }
+  .exp-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .exp-amount { font-size: 14px; font-weight: 800; }
+  .exp-amount.income  { color: var(--accent2); }
+  .exp-amount.expense { color: var(--accent3); }
+
+  /* 메모 */
+  .memo-card {
+    margin: 0 16px 10px; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 14px; box-shadow: var(--shadow-sm);
+  }
+  .memo-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .memo-type { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 10px; flex-shrink: 0; }
+  .type-notice { background: var(--accent-soft);  color: var(--accent); }
+  .type-alert  { background: var(--accent3-soft); color: var(--accent3); }
+  .type-memo   { background: var(--accent2-soft); color: var(--accent2); }
+  .memo-content { font-size: 13px; line-height: 1.7; flex: 1; color: var(--text); }
+  .memo-date { font-size: 11px; color: var(--muted2); margin-top: 6px; }
+  .memo-del { background: none; border: none; color: var(--muted2); cursor: pointer; font-size: 18px; flex-shrink: 0; }
+
+  /* 현황 */
+  .stat-complex-block { margin-bottom: 8px; }
+  .stat-complex-title { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.5px; padding: 14px 16px 8px; text-transform: uppercase; }
+  .stat-row { display: flex; gap: 8px; padding: 0 16px; margin-bottom: 8px; }
+  .stat-card {
+    flex: 1; background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 14px; text-align: center; box-shadow: var(--shadow-sm);
+  }
+  .stat-num { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; color: var(--muted); font-weight: 700; }
+
+  /* 세입자 등록 버튼 */
+  .register-btn-wrap {
+    padding: 8px 16px 4px;
+  }
+  .register-btn {
+    width: 100%; padding: 15px;
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 14px;
+    font-family: inherit; font-size: 15px; font-weight: 800;
+    cursor: pointer; letter-spacing: 0.3px;
+    box-shadow: 0 4px 16px rgba(59,110,246,0.28);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .register-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,110,246,0.38); }
+  .register-btn:active { transform: translateY(0); }
+
+  /* FAB */
+  .fab {
+    position: fixed; bottom: 80px; right: 20px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); border: none; color: #fff;
+    font-size: 24px; cursor: pointer; z-index: 200;
+    box-shadow: 0 4px 16px rgba(59,110,246,0.35);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(59,110,246,0.45); }
+
+  /* 모달 */
+  .modal-overlay {
+    display: none; position: fixed; top:0;left:0;right:0;bottom:0;
+    background: rgba(30,42,58,0.45); z-index: 500;
+    align-items: flex-end; justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 24px 24px 0 0;
+    padding: 20px 20px 40px;
+    width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 -4px 32px rgba(60,80,140,0.12);
+  }
+  .modal-handle { width: 40px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 20px; }
+  .modal h2 { font-size: 16px; font-weight: 800; margin-bottom: 16px; color: var(--text); }
+  .modal label { font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 6px; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%; padding: 11px 12px; border-radius: 10px;
+    border: 1.5px solid var(--border2); background: var(--surface2);
+    color: var(--text); font-family: inherit; font-size: 14px;
+    margin-bottom: 14px; outline: none; transition: border-color 0.2s;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { border-color: var(--accent); background: #fff; }
+  .modal textarea { height: 80px; resize: none; }
+  .modal-btns { display: flex; gap: 8px; margin-top: 4px; }
+  .modal-btn { flex: 1; padding: 13px; border-radius: 12px; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; border: none; }
+  .modal-btn.cancel  { background: var(--surface2); color: var(--muted); }
+  .modal-btn.confirm { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(59,110,246,0.25); }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted2); }
+  .empty-state div { font-size: 36px; margin-bottom: 10px; }
+  .empty-state p { font-size: 13px; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div class="tabbar">
+  <button class="tab-btn active" onclick="showPage('tenants')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    세입자
+  </button>
+  <button class="tab-btn" onclick="showPage('expenses')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+    경비
+  </button>
+  <button class="tab-btn" onclick="showPage('memos')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg>
+    메모
+  </button>
+  <button class="tab-btn" onclick="showPage('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    현황
+  </button>
+</div>
+
+<!-- ===== 세입자 ===== -->
+<div id="page-tenants" class="page active">
+  <div class="page-header">
+    <h1>🏢 세입자 관리</h1>
+    <p id="tenant-summary">로딩 중...</p>
+  </div>
+  <div class="complex-tabs-wrap">
+    <div class="complex-tabs" id="complex-tabs"></div>
+    <button class="add-complex-btn" onclick="toggleAddComplex()" title="단지 추가">＋</button>
+  </div>
+  <div class="add-complex-inline" id="add-complex-inline">
+    <input type="text" id="new-complex-name" placeholder="예: 관악구 기석빌라" maxlength="20">
+    <button class="btn-ok" onclick="confirmAddComplex()">추가</button>
+    <button class="btn-cancel-sm" onclick="toggleAddComplex()">취소</button>
+  </div>
+  <div class="delete-confirm-bar" id="delete-confirm-bar">
+    <p id="delete-confirm-msg"></p>
+    <button class="del-no" onclick="cancelDeleteComplex()">취소</button>
+    <button class="del-yes" onclick="confirmDeleteComplex()">삭제</button>
+  </div>
+  <div class="section-label" id="exit-label">퇴실 예정</div>
+  <div id="exit-list"></div>
+  <div class="section-label" id="stay-label">거주 중</div>
+  <div id="stay-list"></div>
+  <div class="section-label" id="pending-label">확인 필요</div>
+  <div id="pending-list"></div>
+  <div class="register-btn-wrap">
+    <button class="register-btn" onclick="openAddModal()">
+      ＋ 세입자 등록하기
+    </button>
+  </div>
+</div>
+
+<!-- ===== 경비 ===== -->
+<div id="page-expenses" class="page">
+  <div class="page-header">
+    <h1>💳 경비 기록</h1>
+    <p>입출금 내역</p>
+  </div>
+  <div class="month-filter" id="month-filter"></div>
+  <div class="expense-summary">
+    <div class="expense-summary-row">
+      <div class="exp-item"><div class="exp-label">수입</div><div class="exp-val income" id="total-income">0</div></div>
+      <div class="exp-item"><div class="exp-label">지출</div><div class="exp-val expense" id="total-expense">0</div></div>
+      <div class="exp-item"><div class="exp-label">잔액</div><div class="exp-val balance" id="total-balance">0</div></div>
+    </div>
+  </div>
+  <div class="expense-list" id="expense-list"></div>
+</div>
+
+<!-- ===== 메모 ===== -->
+<div id="page-memos" class="page">
+  <div class="page-header">
+    <h1>📝 메모 · 알림</h1>
+    <p>공지, 메모, 주의사항 관리</p>
+  </div>
+  <div style="height:12px;"></div>
+  <div id="memo-list"></div>
+</div>
+
+<!-- ===== 현황 ===== -->
+<div id="page-stats" class="page">
+  <div class="page-header">
+    <h1>📊 전체 현황</h1>
+    <p>단지별 통합 요약</p>
+  </div>
+  <div style="height:8px;"></div>
+  <div id="stats-content"></div>
+</div>
+
+<button class="fab" id="fab-btn" onclick="openAddModal()">＋</button>
+
+<!-- 세입자 추가 모달 -->
+<div class="modal-overlay" id="tenant-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>세입자 추가</h2>
+    <label>단지</label>
+    <select id="add-complex-sel"></select>
+    <label>동/호수</label>
+    <input type="text" id="add-room" placeholder="예: 101동 302호">
+    <label>세입자 이름</label>
+    <input type="text" id="add-name" placeholder="홍길동">
+    <label>연락처</label>
+    <input type="tel" id="add-phone" placeholder="010-0000-0000">
+    <label>임대 기간</label>
+    <input type="text" id="add-period" placeholder="2024.01 ~ 2026.01">
+    <label>월세 / 보증금</label>
+    <input type="text" id="add-rent" placeholder="보증금 1000 / 월세 50">
+    <label>상태</label>
+    <select id="add-status">
+      <option value="stay">거주 중</option>
+      <option value="exit">퇴실 예정</option>
+      <option value="pending">확인 필요</option>
+    </select>
+    <label>메모</label>
+    <textarea id="add-memo" placeholder="특이사항, 연락 내용 등"></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('tenant-modal')">취소</button>
+      <button class="modal-btn confirm" onclick="saveTenant()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 경비 추가 모달 -->
+<div class="modal-overlay" id="expense-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>경비 입력</h2>
+    <label>구분</label>
+    <select id="exp-type">
+      <option value="income">수입 (월세, 보증금 등)</option>
+      <option value="expense">지출 (수리비, 관리비 등)</option>
+    </select>
+    <label>단지</label>
+    <select id="exp-complex-sel"></select>
+    <label>내용</label>
+    <input type="text" id="exp-name" placeholder="예: 1월 월세, 보일러 수리">
+    <label>금액 (만원)</label>
+    <input type="number" id="exp-amount" placeholder="50">
+    <label>날짜</label>
+    <input type="date" id="exp-date">
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('expense-modal')">취소</button>
+      <button class="modal-btn confirm" onclick="saveExpense()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 메모 추가 모달 -->
+<div class="modal-overlay" id="memo-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>메모 추가</h2>
+    <label>유형</label>
+    <select id="memo-type-sel">
+      <option value="notice">공지</option>
+      <option value="alert">주의</option>
+      <option value="memo">메모</option>
+    </select>
+    <label>내용</label>
+    <textarea id="memo-content" placeholder="메모 내용을 입력하세요"></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('memo-modal')">취소</button>
+      <button class="modal-btn confirm" onclick="saveMemo()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// 버전이 다르면 구버전 캐시 초기화
+const APP_VERSION = 'v4';
+if (localStorage.getItem('app_version') !== APP_VERSION) {
+  localStorage.clear();
+  localStorage.setItem('app_version', APP_VERSION);
+}
+let complexes = JSON.parse(localStorage.getItem('complexes') || 'null');
+let tenants   = JSON.parse(localStorage.getItem('tenants')   || '[]');
+let expenses  = JSON.parse(localStorage.getItem('expenses')  || '[]');
+let memos     = JSON.parse(localStorage.getItem('memos')     || '[]');
+
+if (!complexes) {
+  complexes = ['관악구', '라희엽빌리지'];
+  tenants = [
+    { id:1, complex:'관악구', room:'101동 302호', name:'김민준', phone:'010-1234-5678', period:'2023.06 ~ 2025.06', rent:'보증금 1000 / 월세 45', status:'exit',    memo:'6월 말 퇴실 예정. 도배 요청함.' },
+    { id:2, complex:'관악구', room:'101동 505호', name:'이서연', phone:'010-9876-5432', period:'2024.01 ~ 2026.01', rent:'보증금 500 / 월세 55',  status:'stay',    memo:'' },
+    { id:3, complex:'관악구', room:'102동 201호', name:'박지훈', phone:'010-5555-1234', period:'2023.12 ~ 2025.12', rent:'보증금 2000 / 월세 40', status:'stay',    memo:'반려동물 1마리(소형견)' },
+    { id:4, complex:'라희엽빌리지', room:'A동 801호',  name:'최수아', phone:'010-3333-7777', period:'2024.03 ~ 2026.03', rent:'보증금 1500 / 월세 60', status:'stay',    memo:'' },
+    { id:5, complex:'라희엽빌리지', room:'B동 402호',  name:'정태양', phone:'010-2222-8888', period:'2023.09 ~ 2025.09', rent:'보증금 1000 / 월세 50', status:'exit',    memo:'9월 퇴실. 청소비 정산 필요.' },
+    { id:6, complex:'라희엽빌리지', room:'B동 603호',  name:'한예림', phone:'010-4444-9999', period:'2024.06 ~ 2026.06', rent:'보증금 2000 / 월세 65', status:'pending', memo:'보증금 일부 미납 확인 필요' },
+  ];
+  const m  = new Date().toISOString().slice(0,7);
+  const pm = new Date(new Date().setMonth(new Date().getMonth()-1)).toISOString().slice(0,7);
+  expenses = [
+    { id:1, type:'income',  complex:'관악구', name:'302호 월세',      amount:45, date: m+'-05' },
+    { id:2, type:'income',  complex:'관악구', name:'505호 월세',      amount:55, date: m+'-05' },
+    { id:3, type:'expense', complex:'관악구', name:'복도 조명 교체',   amount:8,  date: m+'-10' },
+    { id:4, type:'income',  complex:'라희엽빌리지', name:'801호 월세', amount:60, date: m+'-05' },
+    { id:5, type:'income',  complex:'라희엽빌리지', name:'402호 월세', amount:50, date: m+'-05' },
+    { id:6, type:'expense', complex:'라희엽빌리지', name:'보일러 수리(402호)', amount:25, date: m+'-12' },
+    { id:7, type:'income',  complex:'관악구', name:'201호 월세',      amount:40, date: pm+'-05' },
+    { id:8, type:'expense', complex:'공통',   name:'세금계산서 발행',  amount:5,  date: pm+'-15' },
+  ];
+  memos = [
+    { id:1, type:'alert',  content:'관악구 302호 퇴실 예정 (6월 말) — 청소 업체 예약 필요', date:'2025.06.01' },
+    { id:2, type:'notice', content:'라희엽빌리지 B동 엘리베이터 점검 6/15 오전 10시~12시', date:'2025.06.03' },
+    { id:3, type:'memo',   content:'라희엽빌리지 603호 보증금 잔금 확인 후 연락',          date:'2025.06.04' },
+  ];
+  saveAll();
+}
+
+function saveAll() {
+  localStorage.setItem('complexes', JSON.stringify(complexes));
+  localStorage.setItem('tenants',   JSON.stringify(tenants));
+  localStorage.setItem('expenses',  JSON.stringify(expenses));
+  localStorage.setItem('memos',     JSON.stringify(memos));
+}
+
+let currentComplex = complexes[0] || '관악구';
+let currentMonth   = '';
+let currentPage    = 'tenants';
+let pendingDeleteComplex = null;
+
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.tab-btn')[['tenants','expenses','memos','stats'].indexOf(page)].classList.add('active');
+  document.getElementById('fab-btn').style.display = page === 'stats' ? 'none' : 'flex';
+  if (page === 'tenants')  renderTenants();
+  if (page === 'expenses') renderExpenses();
+  if (page === 'memos')    renderMemos();
+  if (page === 'stats')    renderStats();
+}
+
+function openAddModal() {
+  if (currentPage === 'tenants') {
+    refreshComplexSelects();
+    document.getElementById('add-complex-sel').value = currentComplex;
+    openModal('tenant-modal');
+  } else if (currentPage === 'expenses') {
+    refreshComplexSelects();
+    document.getElementById('exp-date').value = new Date().toISOString().slice(0,10);
+    openModal('expense-modal');
+  } else if (currentPage === 'memos') {
+    openModal('memo-modal');
+  }
+}
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ─── 단지 ─── */
+function renderComplexTabs() {
+  document.getElementById('complex-tabs').innerHTML =
+    complexes.map(c => `
+      <button class="complex-tab ${c===currentComplex?'active':''}" onclick="setComplex('${c}')">
+        ${c}
+        <span class="del-x" onclick="requestDeleteComplex(event,'${c}')">×</span>
+      </button>`).join('') +
+    `<button class="complex-tab ${currentComplex==='전체'?'active':''}" onclick="setComplex('전체')">전체</button>`;
+}
+
+function refreshComplexSelects() {
+  const opts = complexes.map(c => `<option value="${c}">${c}</option>`).join('');
+  document.getElementById('add-complex-sel').innerHTML = opts;
+  document.getElementById('exp-complex-sel').innerHTML = opts + '<option value="공통">공통</option>';
+}
+
+function setComplex(c) { currentComplex = c; renderComplexTabs(); renderTenants(); }
+
+function toggleAddComplex() {
+  const box = document.getElementById('add-complex-inline');
+  box.classList.toggle('open');
+  if (box.classList.contains('open')) { document.getElementById('new-complex-name').value = ''; document.getElementById('new-complex-name').focus(); }
+}
+
+function confirmAddComplex() {
+  const name = document.getElementById('new-complex-name').value.trim();
+  if (!name) { alert('단지 이름을 입력해 주세요.'); return; }
+  if (complexes.includes(name)) { alert('이미 있는 단지입니다.'); return; }
+  complexes.push(name);
+  saveAll();
+  currentComplex = name;
+  toggleAddComplex();
+  renderComplexTabs();
+  renderTenants();
+}
+
+function requestDeleteComplex(e, name) {
+  e.stopPropagation();
+  const count = tenants.filter(t => t.complex === name).length;
+  pendingDeleteComplex = name;
+  document.getElementById('delete-confirm-msg').textContent =
+    `"${name}" 단지를 삭제할까요?${count > 0 ? ` (세입자 ${count}명도 함께 삭제)` : ''}`;
+  document.getElementById('delete-confirm-bar').classList.add('open');
+}
+
+function confirmDeleteComplex() {
+  complexes = complexes.filter(c => c !== pendingDeleteComplex);
+  tenants   = tenants.filter(t => t.complex !== pendingDeleteComplex);
+  saveAll();
+  pendingDeleteComplex = null;
+  document.getElementById('delete-confirm-bar').classList.remove('open');
+  currentComplex = complexes[0] || '전체';
+  renderComplexTabs();
+  renderTenants();
+}
+
+function cancelDeleteComplex() {
+  pendingDeleteComplex = null;
+  document.getElementById('delete-confirm-bar').classList.remove('open');
+}
+
+/* ─── 세입자 ─── */
+const iconMap  = { exit:'🚪', stay:'🏠', pending:'⚠️' };
+const badgeMap = { exit:'badge-exit', stay:'badge-stay', pending:'badge-pending' };
+const labelMap = { exit:'퇴실예정',   stay:'거주중',     pending:'확인필요' };
+
+function renderTenants() {
+  renderComplexTabs();
+  const filtered = currentComplex === '전체' ? tenants : tenants.filter(t => t.complex === currentComplex);
+  const exits    = filtered.filter(t => t.status === 'exit');
+  const stays    = filtered.filter(t => t.status === 'stay');
+  const pendings = filtered.filter(t => t.status === 'pending');
+
+  document.getElementById('exit-label').style.display    = exits.length    ? 'block' : 'none';
+  document.getElementById('stay-label').style.display    = stays.length || !filtered.length ? 'block' : 'none';
+  document.getElementById('pending-label').style.display = pendings.length ? 'block' : 'none';
+
+  document.getElementById('exit-list').innerHTML    = exits.map(tenantCard).join('');
+  document.getElementById('pending-list').innerHTML = pendings.map(tenantCard).join('');
+  document.getElementById('stay-list').innerHTML    = stays.length
+    ? stays.map(tenantCard).join('')
+    : (!filtered.length ? '<div class="empty-state"><div>🏠</div><p>세입자가 없습니다<br>＋ 버튼으로 추가해 보세요</p></div>' : '');
+
+  document.getElementById('tenant-summary').textContent =
+    `총 ${filtered.length}세대 · 퇴실예정 ${exits.length} · 거주중 ${stays.length}`;
+}
+
+function tenantCard(t) {
+  return `
+  <div class="tenant-card ${t.status}" id="card-${t.id}">
+    <div class="status-bar"></div>
+    <div class="tenant-head" onclick="toggleCard(${t.id})">
+      <div class="tenant-icon">${iconMap[t.status]}</div>
+      <div class="tenant-info">
+        <div class="tenant-room">${t.complex} · ${t.room}</div>
+        <div class="tenant-name">${t.name} · ${t.phone}</div>
+      </div>
+      <div class="tenant-badge ${badgeMap[t.status]}">${labelMap[t.status]}</div>
+    </div>
+    <div class="tenant-detail" id="detail-${t.id}">
+      <div class="detail-row"><span class="label">임대기간</span><span class="value">${t.period}</span></div>
+      <div class="detail-row"><span class="label">임대조건</span><span class="value">${t.rent}</span></div>
+      ${t.memo ? `<div class="memo-box">💬 ${t.memo}</div>` : ''}
+      <div class="action-btns">
+        <button class="action-btn" onclick="callTenant('${t.phone}')">📞 전화</button>
+        <button class="action-btn" onclick="cycleStatus(${t.id})">상태변경</button>
+        <button class="action-btn danger" onclick="deleteTenant(${t.id})">삭제</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleCard(id) { document.getElementById('detail-'+id).classList.toggle('open'); }
+function callTenant(phone) { window.location.href = 'tel:'+phone; }
+
+function cycleStatus(id) {
+  const t    = tenants.find(x => x.id === id);
+  const list = ['stay','exit','pending'];
+  t.status   = list[(list.indexOf(t.status)+1) % 3];
+  saveAll(); renderTenants();
+}
+
+function deleteTenant(id) {
+  if (!confirm('세입자를 삭제할까요?')) return;
+  tenants = tenants.filter(t => t.id !== id);
+  saveAll(); renderTenants();
+}
+
+function saveTenant() {
+  const t = {
+    id:      Date.now(),
+    complex: document.getElementById('add-complex-sel').value,
+    room:    document.getElementById('add-room').value,
+    name:    document.getElementById('add-name').value,
+    phone:   document.getElementById('add-phone').value,
+    period:  document.getElementById('add-period').value,
+    rent:    document.getElementById('add-rent').value,
+    status:  document.getElementById('add-status').value,
+    memo:    document.getElementById('add-memo').value,
+  };
+  if (!t.room || !t.name) { alert('동/호수와 이름을 입력해 주세요.'); return; }
+  tenants.push(t);
+  saveAll();
+  closeModal('tenant-modal');
+  ['add-room','add-name','add-phone','add-period','add-rent','add-memo'].forEach(id => document.getElementById(id).value = '');
+  currentComplex = t.complex;
+  renderTenants();
+}
+
+/* ─── 경비 ─── */
+function renderExpenses() {
+  const months = [...new Set(expenses.map(e => e.date.slice(0,7)))].sort().reverse();
+  if (!currentMonth || !months.includes(currentMonth)) currentMonth = months[0] || new Date().toISOString().slice(0,7);
+
+  document.getElementById('month-filter').innerHTML = months.map(m =>
+    `<button class="month-chip ${m===currentMonth?'active':''}" onclick="setMonth('${m}')">${m.replace('-','년 ')}월</button>`
+  ).join('');
+
+  const filtered = expenses.filter(e => e.date.startsWith(currentMonth));
+  const income   = filtered.filter(e => e.type==='income').reduce((s,e) => s+e.amount, 0);
+  const expense  = filtered.filter(e => e.type==='expense').reduce((s,e) => s+e.amount, 0);
+  const balance  = income - expense;
+
+  document.getElementById('total-income').textContent  = income + '만';
+  document.getElementById('total-expense').textContent = expense + '만';
+  document.getElementById('total-balance').textContent = (balance>=0?'+':'') + balance + '만';
+
+  const list = document.getElementById('expense-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state"><div>💸</div><p>이 달의 내역이 없습니다</p></div>';
+    return;
+  }
+  list.innerHTML = filtered.sort((a,b) => b.date.localeCompare(a.date)).map(e => `
+    <div class="expense-item">
+      <div class="exp-icon ${e.type}">${e.type==='income'?'💰':'🔧'}</div>
+      <div class="exp-info">
+        <div class="exp-name">[${e.complex}] ${e.name}</div>
+        <div class="exp-date">${e.date}</div>
+      </div>
+      <div class="exp-amount ${e.type}">${e.type==='income'?'+':'-'}${e.amount}만</div>
+      <button style="background:none;border:none;color:var(--muted2);cursor:pointer;margin-left:4px;font-size:18px;padding:4px;" onclick="deleteExpense(${e.id})">×</button>
+    </div>`).join('');
+}
+
+function setMonth(m) { currentMonth = m; renderExpenses(); }
+
+function saveExpense() {
+  const e = {
+    id: Date.now(), type: document.getElementById('exp-type').value,
+    complex: document.getElementById('exp-complex-sel').value,
+    name: document.getElementById('exp-name').value,
+    amount: parseInt(document.getElementById('exp-amount').value) || 0,
+    date: document.getElementById('exp-date').value,
+  };
+  if (!e.name || !e.amount) { alert('내용과 금액을 입력해 주세요.'); return; }
+  expenses.push(e); saveAll(); closeModal('expense-modal');
+  document.getElementById('exp-name').value = '';
+  document.getElementById('exp-amount').value = '';
+  currentMonth = e.date.slice(0,7); renderExpenses();
+}
+
+function deleteExpense(id) {
+  if (!confirm('삭제할까요?')) return;
+  expenses = expenses.filter(e => e.id !== id); saveAll(); renderExpenses();
+}
+
+/* ─── 메모 ─── */
+function renderMemos() {
+  const list = document.getElementById('memo-list');
+  if (!memos.length) { list.innerHTML = '<div class="empty-state"><div>📝</div><p>메모가 없습니다</p></div>'; return; }
+  const typeMap  = { notice:'type-notice', alert:'type-alert', memo:'type-memo' };
+  const labelMap = { notice:'공지', alert:'주의', memo:'메모' };
+  list.innerHTML = [...memos].reverse().map(m => `
+    <div class="memo-card">
+      <div class="memo-top">
+        <div class="memo-content">${m.content}</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+          <span class="memo-type ${typeMap[m.type]}">${labelMap[m.type]}</span>
+          <button class="memo-del" onclick="deleteMemo(${m.id})">×</button>
+        </div>
+      </div>
+      <div class="memo-date">${m.date}</div>
+    </div>`).join('');
+}
+
+function saveMemo() {
+  const content = document.getElementById('memo-content').value.trim();
+  if (!content) { alert('내용을 입력해 주세요.'); return; }
+  memos.push({ id: Date.now(), type: document.getElementById('memo-type-sel').value, content, date: new Date().toLocaleDateString('ko-KR') });
+  saveAll(); closeModal('memo-modal');
+  document.getElementById('memo-content').value = '';
+  renderMemos();
+}
+
+function deleteMemo(id) {
+  if (!confirm('삭제할까요?')) return;
+  memos = memos.filter(m => m.id !== id); saveAll(); renderMemos();
+}
+
+/* ─── 현황 ─── */
+function renderStats() {
+  const container = document.getElementById('stats-content');
+  if (!complexes.length) { container.innerHTML = '<div class="empty-state"><div>📊</div><p>단지가 없습니다</p></div>'; return; }
+  container.innerHTML = complexes.map(c => {
+    const ct      = tenants.filter(t => t.complex === c);
+    const exits   = ct.filter(t => t.status === 'exit');
+    const stays   = ct.filter(t => t.status === 'stay').length;
+    const pendings = ct.filter(t => t.status === 'pending').length;
+    return `
+    <div class="stat-complex-block">
+      <div class="stat-complex-title">🏢 ${c}</div>
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-num" style="color:var(--accent2)">${stays}</div><div class="stat-label">거주 중</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--accent3)">${exits.length}</div><div class="stat-label">퇴실 예정</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--accent4)">${pendings}</div><div class="stat-label">확인 필요</div></div>
+      </div>
+      ${exits.map(t => `
+        <div style="margin:0 16px 6px;">
+          <div class="expense-item">
+            <div class="exp-icon expense">🚪</div>
+            <div class="exp-info">
+              <div class="exp-name">${t.room} · ${t.name}</div>
+              <div class="exp-date">${t.period} · ${t.phone}</div>
+            </div>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+  ov.addEventListener('click', function(e) { if (e.target === this) this.classList.remove('open'); });
+});
+document.getElementById('new-complex-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmAddComplex();
+});
+
+renderTenants();
+</script>
+</body>
+</html>
